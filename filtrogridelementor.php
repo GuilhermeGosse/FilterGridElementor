@@ -8,7 +8,6 @@ Author: Canal Solar
 Author URI: https://github.com/GuilhermeGosse
 Update URI: https://github.com/GuilhermeGosse/FilterGridElementor
 Text Domain: filtrogridelementor
-License: GPL2
 */
 
 if (!defined('ABSPATH')) {
