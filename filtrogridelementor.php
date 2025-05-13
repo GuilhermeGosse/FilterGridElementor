@@ -3,122 +3,69 @@
 Plugin Name: Filtros Grid Elementor (ACF)
 Plugin URI: https://github.com/GuilhermeGosse/FilterGridElementor
 Description: Adiciona filtros baseados em campos ACF com integração do GRID Post do Elementor.
-Version: 1.0.1
+Version: 1.0.0
 Author: Canal Solar
 Author URI: https://github.com/GuilhermeGosse
 Update URI: https://github.com/GuilhermeGosse/FilterGridElementor
 Text Domain: filtrogridelementor
+License: GPL2
 */
 
-// Sistema de atualização automática
-add_filter('update_plugins_github.com', function($update, $plugin_data, $plugin_file, $locales) {
-    // Verifica se é este plugin
-    if (plugin_basename(__FILE__) !== $plugin_file) {
-        return $update;
-    }
-    
-    // Obter a versão atual do plugin
-    $plugin_data = get_file_data(__FILE__, ['Version' => 'Version']);
-    $current_version = $plugin_data['Version'];
-    
-    return [
-        'slug' => 'filtrogridelementor',
-        'version' => $current_version,
-        'url' => 'https://github.com/GuilhermeGosse/FilterGridElementor',
-        'package' => 'https://github.com/GuilhermeGosse/FilterGridElementor/archive/refs/tags/v' . $current_version . '.zip',
-        'requires' => '5.6',
-        'requires_php' => '7.4',
-    ];
-}, 10, 4);
+defined('ABSPATH') || exit;
 
-if (!defined('ABSPATH')) {
-    exit; 
-}
+// Defina constantes do plugin
+define('FGE_PLUGIN_PATH', plugin_dir_path(__FILE__));
+define('FGE_PLUGIN_URL', plugin_dir_url(__FILE__));
+
+// Carrega os arquivos necessários
+require_once FGE_PLUGIN_PATH . 'includes/class-updater.php';
+require_once FGE_PLUGIN_PATH . 'post-types/fabricante/class-fabricantes.php';
+require_once FGE_PLUGIN_PATH . 'post-types/distribuidora/class-distribuidoras.php';
 
 class FiltroGridElementor {
     
     public function __construct() {
-     
-        add_shortcode('filtro', array($this, 'filtro_fabricacao_elementor_shortcode'));
-        add_action('elementor/query/fabricantes_query', array($this, 'fabricante_query'));
+        // Verifica dependências
+        $this->check_dependencies();
+        
+        // Inicializa os módulos
+        new FGE_Fabricantes();
+        new FGE_Distribuidoras();
+        new FGE_Updater();
+        
+        // Carrega assets
+        add_action('wp_enqueue_scripts', [$this, 'load_assets']);
     }
     
-    public function filtro_elementor_shortcode() {
-
-        $valores_fabricacao = [];
-
-        $posts = get_posts([
-            'post_type'      => 'fabricante',
-            'posts_per_page' => -1,
-            'post_status'    => 'publish',
-            'fields'         => 'ids', 
-        ]);
-
-        foreach ($posts as $post_id) {
-            $valor = get_field('fabricacao', $post_id);
-
-            if (is_array($valor)) {
-                foreach ($valor as $v) {
-                    $valores_fabricacao[] = $v;
-                }
-            } elseif (!empty($valor)) {
-                $valores_fabricacao[] = $valor;
-            }
+    private function check_dependencies() {
+        if (!function_exists('get_field')) {
+            add_action('admin_notices', function() {
+                echo '<div class="notice notice-error"><p>O plugin <strong>Filtros Grid Elementor</strong> requer o plugin Advanced Custom Fields (ACF) para funcionar corretamente.</p></div>';
+            });
+            return false;
         }
-
-        $valores_fabricacao = array_unique($valores_fabricacao);
-        sort($valores_fabricacao);
-
-        ob_start();
-        ?>
-        <form id="form-fabricacao" method="get">
-            <label for="fabricacao">Categoria de fabricação:</label>
-            <select name="fabricacao" id="fabricacao">
-                <option value="" <?php selected($_GET['fabricacao'] ?? '', ''); ?>>Todas</option>
-                <?php foreach ($valores_fabricacao as $valor): ?>
-                    <option value="<?php echo esc_attr($valor); ?>" <?php selected($_GET['fabricacao'] ?? '', $valor); ?>>
-                        <?php echo esc_html($valor); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </form>
-
-        <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const select = document.getElementById('fabricacao');
-            if (select) {
-                select.addEventListener('change', function () {
-                    document.getElementById('form-fabricacao').submit();
-                });
-            }
-        });
-        </script>
-        <?php
-        return ob_get_clean();
+        return true;
     }
     
-    public function fabricante_query($query) {
-        if (!isset($query->query_vars['post_type']) || $query->query_vars['post_type'] !== 'fabricante') {
-            return;
-        }
-
-        if (!empty($_GET['fabricacao'])) {
-            $fabricacao = sanitize_text_field($_GET['fabricacao']);
-
-            $meta_query = $query->get('meta_query');
-            if (!is_array($meta_query)) {
-                $meta_query = [];
-            }
-
-            $meta_query[] = [
-                'key'     => 'fabricacao',
-                'value'   => '"' . $fabricacao . '"',
-                'compare' => 'LIKE'
-            ];
-
-            $query->set('meta_query', $meta_query);
-        }
+    public function load_assets() {
+        wp_enqueue_style(
+            'filtrogridelementor-css',
+            FGE_PLUGIN_URL . 'assets/css/styles.css',
+            [],
+            filemtime(FGE_PLUGIN_PATH . 'assets/css/styles.css')
+        );
+        
+        wp_enqueue_script(
+            'filtrogridelementor-js',
+            FGE_PLUGIN_URL . 'assets/js/scripts.js',
+            ['jquery'],
+            filemtime(FGE_PLUGIN_PATH . 'assets/js/scripts.js'),
+            true
+        );
     }
 }
 
-new FiltroGridElementor();
+// Inicializa o plugin
+add_action('plugins_loaded', function() {
+    new FiltroGridElementor();
+});
