@@ -3,7 +3,7 @@
 Plugin Name: Filtros Grid Elementor (ACF)
 Plugin URI: https://github.com/GuilhermeGosse/FilterGridElementor
 Description: Adiciona filtros baseados em campos ACF com integração do GRID Post do Elementor.
-Version: 1.0.0
+Version: 1.0.1
 Author: Canal Solar
 Author URI: https://github.com/GuilhermeGosse
 Update URI: https://github.com/GuilhermeGosse/FilterGridElementor
