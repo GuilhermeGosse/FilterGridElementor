@@ -1,14 +1,35 @@
 <?php
 /*
 Plugin Name: Filtros Grid Elementor (ACF)
-Plugin URI: https://github.com/GuilhermeGosse/filtrogridelementor
+Plugin URI: https://github.com/GuilhermeGosse/FilterGridElementor
 Description: Adiciona filtros baseados em campos ACF com integração do GRID Post do Elementor.
 Version: 1.0.0
 Author: Canal Solar
 Author URI: https://github.com/GuilhermeGosse
-Update URI: https://github.com/GuilhermeGosse/filtrogridelementor
+Update URI: https://github.com/GuilhermeGosse/FilterGridElementor
 Text Domain: filtrogridelementor
 */
+
+// Sistema de atualização automática
+add_filter('update_plugins_github.com', function($update, $plugin_data, $plugin_file, $locales) {
+    // Verifica se é este plugin
+    if (plugin_basename(__FILE__) !== $plugin_file) {
+        return $update;
+    }
+    
+    // Obter a versão atual do plugin
+    $plugin_data = get_file_data(__FILE__, ['Version' => 'Version']);
+    $current_version = $plugin_data['Version'];
+    
+    return [
+        'slug' => 'filtrogridelementor',
+        'version' => $current_version,
+        'url' => 'https://github.com/GuilhermeGosse/FilterGridElementor',
+        'package' => 'https://github.com/GuilhermeGosse/FilterGridElementor/archive/refs/tags/v' . $current_version . '.zip',
+        'requires' => '5.6',
+        'requires_php' => '7.4',
+    ];
+}, 10, 4);
 
 if (!defined('ABSPATH')) {
     exit; 
