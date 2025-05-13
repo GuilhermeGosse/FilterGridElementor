@@ -1,115 +1,149 @@
 <?php
 /*
 Plugin Name: Filtros Grid Elementor (ACF)
-Version: 1.0.2
+Plugin URI: https://github.com/GuilhermeGosse/FilterGridElementor
+Description: Adiciona filtros baseados em campos ACF com integração do GRID Post do Elementor.
+Version: 1.0.0
+Author: Canal Solar
+Author URI: https://github.com/GuilhermeGosse
 Update URI: https://github.com/GuilhermeGosse/FilterGridElementor
+Text Domain: filtrogridelementor
+License: GPL2
 */
 
 defined('ABSPATH') || exit;
 
-class FiltroGridElementor_Updater {
+class FiltroGridElementor {
     
-    private $plugin_slug;
-    private $plugin_file;
     private $github_username = 'GuilhermeGosse';
     private $github_repo = 'FilterGridElementor';
     
     public function __construct() {
-        $this->plugin_file = plugin_basename(__FILE__);
-        $this->plugin_slug = basename(__FILE__, '.php');
-        
-        add_filter('site_transient_update_plugins', [$this, 'force_update_check'], 20, 1);
-        add_filter('plugins_api', [$this, 'plugin_info'], 20, 3);
+        add_shortcode('filtro', [$this, 'filtro_elementor_shortcode']);
+        add_action('elementor/query/fabricantes_query', [$this, 'fabricante_query']);
+        add_filter('pre_set_site_transient_update_plugins', [$this, 'check_for_plugin_update']);
     }
     
-    public function force_update_check($transient) {
-        // Remove o filtro temporariamente para evitar loops
-        remove_filter('site_transient_update_plugins', [$this, 'force_update_check'], 20);
-        
-        // Força a verificação apenas para este plugin
-        $update = $this->check_update();
-        
-        if ($update && version_compare($this->get_local_version(), $update->new_version, '<')) {
-            $transient->response[$this->plugin_file] = $update;
-        } else {
-            unset($transient->response[$this->plugin_file]);
+    public function check_for_plugin_update($transient) {
+        if (empty($transient->checked)) {
+            return $transient;
         }
-        
-        // Restaura o filtro
-        add_filter('site_transient_update_plugins', [$this, 'force_update_check'], 20, 1);
-        
+
+        $plugin_slug = plugin_basename(__FILE__);
+        $remote_version = $this->get_remote_version();
+
+        if ($remote_version && version_compare($this->get_plugin_version(), $remote_version, '<')) {
+            $response = (object) [
+                'slug' => 'filtrogridelementor',
+                'plugin' => $plugin_slug,
+                'new_version' => $remote_version,
+                'package' => "https://github.com/{$this->github_username}/{$this->github_repo}/archive/refs/tags/v{$remote_version}.zip",
+                'tested' => get_bloginfo('version')
+            ];
+            $transient->response[$plugin_slug] = $response;
+        }
+
         return $transient;
     }
-    
-    private function check_update() {
-        $remote_data = $this->get_remote_data();
+
+    private function get_remote_version() {
+        $api_url = "https://api.github.com/repos/{$this->github_username}/{$this->github_repo}/releases/latest";
         
-        if (!$remote_data || !isset($remote_data->tag_name)) {
-            return false;
-        }
-        
-        $remote_version = ltrim($remote_data->tag_name, 'v');
-        $local_version = $this->get_local_version();
-        
-        if (version_compare($local_version, $remote_version, '>=')) {
-            return false;
-        }
-        
-        return (object) [
-            'slug' => $this->plugin_slug,
-            'plugin' => $this->plugin_file,
-            'new_version' => $remote_version,
-            'package' => "https://github.com/{$this->github_username}/{$this->github_repo}/archive/refs/tags/{$remote_data->tag_name}.zip",
-            'tested' => get_bloginfo('version')
-        ];
-    }
-    
-    private function get_remote_data() {
-        $response = wp_remote_get(
-            "https://api.github.com/repos/{$this->github_username}/{$this->github_repo}/releases/latest",
-            [
-                'headers' => ['Accept' => 'application/vnd.github.v3+json'],
-                'timeout' => 15
+        $args = [
+            'headers' => [
+                'Accept' => 'application/vnd.github.v3+json'
             ]
-        );
+        ];
         
-        if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
+        $response = wp_remote_get($api_url, $args);
+        
+        if (is_wp_error($response) {
+            error_log('Erro ao verificar atualizações do plugin: ' . $response->get_error_message());
             return false;
         }
-        
-        return json_decode(wp_remote_retrieve_body($response));
+
+        if (wp_remote_retrieve_response_code($response) !== 200) {
+            return false;
+        }
+
+        $body = json_decode(wp_remote_retrieve_body($response));
+        return isset($body->tag_name) ? ltrim($body->tag_name, 'v') : false;
     }
-    
-    private function get_local_version() {
+
+    private function get_plugin_version() {
         static $version = null;
+        
         if (is_null($version)) {
             $plugin_data = get_file_data(__FILE__, ['Version' => 'Version']);
             $version = $plugin_data['Version'];
         }
+        
         return $version;
     }
     
-    public function plugin_info($false, $action, $response) {
-        if ($response->slug !== $this->plugin_slug) {
-            return $false;
+    public function filtro_elementor_shortcode() {
+        $valores_fabricacao = [];
+        $posts = get_posts([
+            'post_type' => 'fabricante',
+            'posts_per_page' => -1,
+            'post_status' => 'publish',
+            'fields' => 'ids',
+        ]);
+
+        foreach ($posts as $post_id) {
+            $valor = get_field('fabricacao', $post_id);
+            if ($valor) {
+                $valores = is_array($valor) ? $valor : [$valor];
+                $valores_fabricacao = array_merge($valores_fabricacao, $valores);
+            }
         }
-        
-        $remote_data = $this->get_remote_data();
-        
-        if (!$remote_data) {
-            return $false;
+
+        $valores_fabricacao = array_unique($valores_fabricacao);
+        sort($valores_fabricacao);
+
+        ob_start(); ?>
+        <form id="form-fabricacao" method="get" class="filtro-grid-form">
+            <label for="fabricacao" class="filtro-grid-label">Categoria de fabricação:</label>
+            <select name="fabricacao" id="fabricacao" class="filtro-grid-select">
+                <option value=""><?php esc_html_e('Todas', 'filtrogridelementor'); ?></option>
+                <?php foreach ($valores_fabricacao as $valor): ?>
+                    <option value="<?php echo esc_attr($valor); ?>" <?php selected($_GET['fabricacao'] ?? '', $valor); ?>>
+                        <?php echo esc_html($valor); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const select = document.getElementById('fabricacao');
+            if (select) select.addEventListener('change', function() {
+                this.form.submit();
+            });
+        });
+        </script>
+        <?php
+        return ob_get_clean();
+    }
+    
+    public function fabricante_query($query) {
+        if (!isset($query->query_vars['post_type']) || $query->query_vars['post_type'] !== 'fabricante') {
+            return;
         }
-        
-        return (object) [
-            'name' => 'Filtros Grid Elementor',
-            'slug' => $this->plugin_slug,
-            'version' => ltrim($remote_data->tag_name, 'v'),
-            'download_link' => "https://github.com/{$this->github_username}/{$this->github_repo}/archive/refs/tags/{$remote_data->tag_name}.zip",
-            'sections' => [
-                'description' => 'Plugin de filtros para Elementor com integração ACF'
-            ]
-        ];
+
+        if (!empty($_GET['fabricacao'])) {
+            $fabricacao = sanitize_text_field($_GET['fabricacao']);
+            
+            $meta_query = (array) $query->get('meta_query');
+            $meta_query[] = [
+                'key' => 'fabricacao',
+                'value' => '"' . $fabricacao . '"',
+                'compare' => 'LIKE'
+            ];
+            
+            $query->set('meta_query', $meta_query);
+        }
     }
 }
 
-new FiltroGridElementor_Updater();
+new FiltroGridElementor();
