@@ -1,27 +1,34 @@
 <?php
-
 if (!defined('ABSPATH')) exit;
 
 class FGE_Fabricante_Query {
 
+    protected $config;
+    protected $post_type = 'fabricante';
+
     public function __construct() {
+        $this->config = require __DIR__ . '/config.php';
         add_action('elementor/query/fabricantes_query', [$this, 'apply']);
     }
 
     public function apply($query) {
-        if ($query->get('post_type') !== 'fabricante') return;
+        if ($query->get('post_type') !== $this->post_type) return;
 
-        if (!empty($_GET['fabricacao'])) {
-            $fabricacao = sanitize_text_field($_GET['fabricacao']);
+        $meta_query = [];
 
-            $meta_query = $query->get('meta_query') ?: [];
+        foreach ($this->config as $param => $campo) {
+            if (!empty($_GET[$param])) {
+                $value = sanitize_text_field($_GET[$param]);
 
-            $meta_query[] = [
-                'key'     => 'fabricacao',
-                'value'   => '"' . $fabricacao . '"',
-                'compare' => 'LIKE',
-            ];
+                $meta_query[] = [
+                    'key'     => $campo['acf_key'],
+                    'value'   => $campo['type'] === 'select' ? '"' . $value . '"' : $value,
+                    'compare' => $campo['type'] === 'select' ? 'LIKE' : '=',
+                ];
+            }
+        }
 
+        if (!empty($meta_query)) {
             $query->set('meta_query', $meta_query);
         }
     }
