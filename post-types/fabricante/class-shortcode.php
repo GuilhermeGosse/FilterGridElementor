@@ -1,7 +1,7 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-require_once __DIR__ . '/trait-helpers.php';
+require_once __DIR__ . '../../../includes/trait-helpers.php';
 
 class FGE_Fabricante_Shortcode {
 
@@ -21,7 +21,7 @@ class FGE_Fabricante_Shortcode {
             'fge-filtro-styles',
             plugin_dir_url(__FILE__) . '../../assets/css/styles.css',
             [],
-			'1.0.1'
+			'1.0.0'
           
         );
     }
