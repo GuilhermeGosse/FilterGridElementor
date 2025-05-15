@@ -1,0 +1,83 @@
+#form-fabricante {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#form-fabricante fieldset {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: white;
+}
+
+#form-fabricante legend {
+    font-weight: 600;
+    color: #2c3e50;
+    padding: 0 10px;
+    font-size: 1.1em;
+}
+
+#form-fabricante label {
+    display: block;
+    margin: 8px 0;
+    cursor: pointer;
+    color: #34495e;
+}
+
+#form-fabricante input[type="checkbox"] {
+    margin-right: 10px;
+    accent-color: #3498db;
+}
+
+#form-fabricante input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1em;
+}
+
+#form-fabricante button {
+    padding: 10px 20px;
+    margin-right: 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#form-fabricante button[type="submit"] {
+    background-color: #3498db;
+    color: white;
+}
+
+#form-fabricante button[type="submit"]:hover {
+    background-color: #2980b9;
+}
+
+#form-fabricante button[type="button"] {
+    background-color: #95a5a6;
+    color: white;
+}
+
+#form-fabricante button[type="button"]:hover {
+    background-color: #7f8c8d;
+}
+
+/* Layout responsivo para os checkboxes */
+@media (min-width: 600px) {
+    #form-fabricante fieldset {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+    }
+}

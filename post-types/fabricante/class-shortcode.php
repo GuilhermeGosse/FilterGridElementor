@@ -13,30 +13,59 @@ class FGE_Fabricante_Shortcode {
     public function __construct() {
         $this->config = require __DIR__ . '/config.php';
         add_shortcode('filtro_fabricante', [$this, 'render']);
+		add_action('wp_enqueue_scripts', [$this, 'enqueue_styles']);
+    }
+	
+	public function enqueue_styles() {
+        wp_enqueue_style(
+            'fge-filtro-styles',
+            plugin_dir_url(__FILE__) . '../../assets/css/styles.css',
+            [],
+			'1.0.1'
+          
+        );
     }
 
-    public function render() {
-        ob_start();
-        ?>
-        <form id="form-fabricante" method="get">
-            <?php foreach ($this->config as $name => $campo):
-                $label = $campo['label'];
-                $value_atual = $_GET[$name] ?? '';
-                $valores = $this->get_unique_acf_values($this->post_type, $campo['acf_key']);
-            ?>
-                <label for="<?= esc_attr($name); ?>"><?= esc_html($label); ?>:</label>
-                <select name="<?= esc_attr($name); ?>" id="<?= esc_attr($name); ?>">
-                    <option value="">Todas</option>
-                    <?php foreach ($valores as $valor): ?>
-                        <option value="<?= esc_attr($valor); ?>" <?= selected($value_atual, $valor, false); ?>>
-                            <?= esc_html($valor); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            <?php endforeach; ?>
-            <button type="submit">Filtrar</button>
-        </form>
-        <?php
-        return ob_get_clean();
-    }
+  public function render() {
+    ob_start();
+    ?>
+    <form id="form-fabricante" method="get">
+       <?php foreach ($this->config as $name => $campo):
+    if ($campo['type'] !== 'select') continue;
+
+    $label = $campo['label'];
+    $valores = $this->get_unique_acf_values($this->post_type, $campo['acf_key']);
+    // Pega valores selecionados (agora serão múltiplos)
+    $valores_selecionados = isset($_GET[$name]) ? (array) $_GET[$name] : [];
+?>
+    <fieldset>
+        <legend><?= esc_html($label); ?>:</legend>
+        <?php foreach ($valores as $valor): ?>
+            <label>
+                <input 
+                    type="checkbox" 
+                    name="<?= esc_attr($name); ?>[]" 
+                    value="<?= esc_attr($valor); ?>" 
+                    <?= in_array($valor, $valores_selecionados) ? 'checked' : ''; ?>
+                >
+                <?= esc_html($valor); ?>
+            </label>
+        <?php endforeach; ?>
+    </fieldset>
+<?php endforeach; ?>
+
+        <!-- Campo de busca textual -->
+        <label for="search_term">Buscar fabricante:</label>
+        <input type="text" name="search_term" id="search_term"
+               value="<?= esc_attr($_GET['search_term'] ?? ''); ?>"
+               placeholder="Digite o nome...">
+
+        <button type="submit">Filtrar</button>
+<button type="button" onclick="document.getElementById('form-fabricante').reset(); window.location.href = window.location.pathname;">Limpar</button>
+
+    </form>
+    <?php
+    return ob_get_clean();
+}
+
 }
